@@ -1,6 +1,7 @@
 import os
 import yaml
 from openai import OpenAI
+from google import genai
 import subprocess
 import re
 import requests
@@ -144,15 +145,11 @@ def translate_with_openai(system_prompt, user_prompt):
 
 def translate_with_gemini(system_prompt, user_prompt):
     """Translation using Google Gemini API."""
-    prompt = f'{system_prompt}\n\n{user_prompt}'
-    gemini_api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateText"
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "model": AI_MODEL,
-        "prompt": prompt,
-        "temperature": 0.7,
-    }
-    response = requests.post(f"{gemini_api_url}?key={API_KEY}", json=payload, headers=headers)
+    client = genai.Client()
+    
+    response = client.models.generate_content(
+        model=AI_MODEL, contents=f"{system_prompt}\n\n{user_prompt}"
+    )
     return response.json().get("candidates", [{}])[0].get("output", "").strip()
 
 
