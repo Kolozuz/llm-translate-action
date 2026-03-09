@@ -150,7 +150,7 @@ def translate_with_gemini(system_prompt, user_prompt):
     response = client.models.generate_content(
         model=AI_MODEL, contents=f"{system_prompt}\n\n{user_prompt}"
     )
-    return response.json().get("candidates", [{}])[0].get("output", "").strip()
+    return response.text
 
 
 def translate_with_claude(system_prompt, user_prompt):
