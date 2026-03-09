@@ -1,4 +1,4 @@
 requests
 openai>=1.0.0
-google
+google-genai
 pyyaml
