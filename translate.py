@@ -145,7 +145,7 @@ def translate_with_openai(system_prompt, user_prompt):
 
 def translate_with_gemini(system_prompt, user_prompt):
     """Translation using Google Gemini API."""
-    client = genai.Client()
+    client = genai.Client(api_key=API_KEY)
     
     response = client.models.generate_content(
         model=AI_MODEL, contents=f"{system_prompt}\n\n{user_prompt}"
