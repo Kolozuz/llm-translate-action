@@ -5,7 +5,6 @@ from google import genai
 import subprocess
 import re
 import requests
-from glob import glob
 
 API_KEY = os.getenv('API_KEY')
 if not API_KEY:
@@ -86,7 +85,6 @@ def get_changed_files():
     )
 
     all_changed = diff_result.stdout.splitlines()
-    lang_code_suffixes = [f"-{TARGET_LANG_CODE.lower()}.{ext}" for ext in file_exts]
     changed_files = []
 
     for f in all_changed:
