@@ -17,12 +17,12 @@ inputs:
     description: "AI model Specify model (e.g., gemini-pro, claude-v1)"
     required: false
     default: "gpt-4"
-  target_lang:
-    description: "Target language for translation (e.g., Persian, Spanish, German, French)"
+  target_langs:
+    description: 'Comma-separated list of languages for translation (e.g., "Persian, Spanish", "German, French")'
     required: false
     default: "Persian"
-  target_lang_code:
-    description: "Target language code. (e.g: fa for Persian, or ru for Russian)"
+  target_lang_codes:
+    description: 'Comma-separated list of target languages codes. (e.g: "fa, es" for Persian and Spanish, or "ru" for Russian)'
     required: false
     default: "fa"
   file_exts:
@@ -52,8 +52,9 @@ runs:
     API_KEY: ${{ inputs.api_key }}
     AI_SERVICE: ${{ inputs.ai_service }}
     AI_MODEL: ${{ inputs.ai_model }}
-    TARGET_LANG: ${{ inputs.target_lang }}
-    TARGET_LANG_CODE: ${{ inputs.target_lang_code }}
+    TARGET_LANGS: ${{ inputs.target_langs }}
+    TARGET_LANG_CODES: ${{ inputs.target_lang_codes }}
     FILE_EXTS: ${{ inputs.file_exts }}
     OUTPUT_FORMAT: ${{ inputs.output_format }}
     BASE_BRANCH: ${{ inputs.base_branch }}
+

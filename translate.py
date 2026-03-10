@@ -12,11 +12,11 @@ if not API_KEY:
     print("API key not found. Please set the API_KEY variable.")
     raise ValueError("API key not found.")
 
-TARGET_LANG = os.getenv('TARGET_LANG', 'Persian') # Default: Persian
-print('* Target Language:', TARGET_LANG)
+TARGET_LANGS = os.getenv('TARGET_LANGS', 'Persian') # Default: Persian
+print('* Target Language/s:', TARGET_LANGS)
 
-TARGET_LANG_CODE = os.getenv('TARGET_LANG_CODE', 'fa') # Default: fa
-print('* Target Language Code:', TARGET_LANG_CODE)
+TARGET_LANG_CODES = os.getenv('TARGET_LANG_CODES', 'fa') # Default: fa
+print('* Target Language/s Code/s:', TARGET_LANG_CODES)
 
 FILE_EXTS = os.getenv('FILE_EXTS','md') # Default: Markdown files
 print('* File Extensions:', FILE_EXTS)
@@ -45,6 +45,7 @@ print('* AI Model:', AI_MODEL)
 BASE_BRANCH = os.getenv('BASE_BRANCH', os.getenv("GITHUB_BASE_REF"))
 print('* Base Branch:', BASE_BRANCH)
 
+
 def extract_yaml_and_content(md_text):
     match = re.match(r"^---\n(.*?)\n---\n(.*)", md_text, re.DOTALL)
     if match:
@@ -57,26 +58,6 @@ def extract_yaml_and_content(md_text):
 def reconstruct_markdown(yaml_data, translated_content):
     yaml_str = yaml.dump(yaml_data, allow_unicode=True, default_flow_style=False)
     return f"---\n{yaml_str}---\n\n{translated_content}"
-
-
-def translate_text(text):
-    """Determines the AI provider and fetches the translation."""
-    system_prompt = SYSTEM_PROMPT.replace('{TARGET_LANG}', TARGET_LANG)
-    user_prompt = USER_PROMPT.replace('{TARGET_LANG}', TARGET_LANG).replace('{text}', text)
-
-    if AI_SERVICE.lower() == 'openai':
-        return translate_with_openai(system_prompt, user_prompt)
-
-    elif AI_SERVICE.lower() == 'gemini':
-        return translate_with_gemini(system_prompt, user_prompt)
-
-    elif AI_SERVICE.lower() == 'claude':
-        return translate_with_claude(system_prompt, user_prompt)
-
-    elif AI_SERVICE.lower() == 'azure':
-        return translate_with_azure(text)
-    else:
-        raise ValueError(f'Unsupported AI service: {AI_SERVICE}')
 
 
 def get_changed_files():
@@ -116,17 +97,23 @@ def get_changed_files():
     return changed_files
 
 
-def get_translated_filename(file_path):
-    lang_code = TARGET_LANG_CODE.lower()
+def get_translated_filename(file_path, lang_code):
     ext = file_path.split(".")[-1]
     base_name = ".".join(file_path.split(".")[:-1])  # Remove extension
     
     return OUTPUT_FORMAT.replace("{lang}", lang_code).replace("{ext}", ext).replace("*", base_name)
-
+    
 
 def is_translated_file(file_path):
-    expected_translated = get_translated_filename(file_path)
-    return os.path.basename(file_path) == os.path.basename(expected_translated)
+    lang_codes = TARGET_LANG_CODES.lower().split(",")
+
+    for lang_code in lang_codes:
+        expected_translated = get_translated_filename(file_path, lang_code)
+
+        if expected_translated in file_path:
+            return True 
+
+    return False
 
 
 def translate_with_openai(system_prompt, user_prompt):
@@ -181,11 +168,37 @@ def translate_with_azure(text):
         "Content-Type": "application/json",
         "Ocp-Apim-Subscription-Region": os.getenv("AZURE_REGION", "westeurope"),
     }
-    params = {"api-version": "3.0", "to": TARGET_LANG_CODE}
+    params = {"api-version": "3.0", "to": TARGET_LANG_CODES}
     body = [{"text": text}]
     response = requests.post(azure_endpoint, params=params, headers=headers, json=body)
     return response.json()[0]["translations"][0]["text"].strip()
 
+SERVICES = {
+    "openai": translate_with_openai,
+    "gemini": translate_with_gemini,
+    "claude": translate_with_claude,
+    "azure": translate_with_azure,
+}
+
+
+def translate_text(text, langs: list[str]):
+    """Determines the AI provider and fetches the translation/s."""
+    translations = {}
+    language_index = 0
+
+    for target_language in langs:
+        system_prompt = SYSTEM_PROMPT.replace('{TARGET_LANG}', target_language)
+        user_prompt = USER_PROMPT.replace('{TARGET_LANG}', target_language).replace('{text}', text)
+
+        service = SERVICES[target_language]
+        if service:
+            language_code = TARGET_LANG_CODES[language_index]
+            translations[language_code] = service(system_prompt, user_prompt)
+            language_index += 1
+        else:
+            raise ValueError(f'Unsupported AI service: {AI_SERVICE}')
+    
+    return translations
 
 def main():
     changed_files = get_changed_files()
@@ -209,29 +222,31 @@ def main():
         else:
             yaml_data, content = None, file_text.strip()
 
-        translated_content = translate_text(content)
+        translated_content = translate_text(content, TARGET_LANGS.split(","))
+        
+        for lang_code, translation in translated_content:
 
-        # Reconstruct if it's markdown with YAML front matter
-        translated_file_text = (
-            reconstruct_markdown(yaml_data, translated_content)
-            if yaml_data
-            else translated_content
-        )
+            # Reconstruct if it's markdown with YAML front matter
+            translated_file_text = (
+                reconstruct_markdown(yaml_data, translation)
+                if yaml_data
+                else translation
+            )
 
-        # Generate target filename
-        translated_file_path = get_translated_filename(file_path)
+            # Generate target filename
+            translated_file_path = get_translated_filename(file_path, lang_code)
 
-        # Save translated file
-        with open(translated_file_path, "w", encoding="utf-8") as f:
-            f.write(translated_file_text)
+            # Save translated file
+            with open(translated_file_path, "w", encoding="utf-8") as f:
+                f.write(translated_file_text)
 
-        print(f"Translated file saved to: {translated_file_path}")
+            print(f"Translated file saved to: {translated_file_path}")
 
     # Git commit and push
     subprocess.run(["git", "config", "--global", "user.name", "github-actions[bot]"])
     subprocess.run(["git", "config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"])
     subprocess.run(["git", "add", "*"])
-    subprocess.run(["git", "commit", "-m", f"Add translated files in {TARGET_LANG}"])
+    subprocess.run(["git", "commit", "-m", f"Add translated files in {TARGET_LANGS}"])
     subprocess.run(["git", "push"])
 
 if __name__ == "__main__":
