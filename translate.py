@@ -220,7 +220,7 @@ def main():
         else:
             yaml_data, content = None, file_text.strip()
 
-        translated_content = translate_text(content, TARGET_LANGS.split(","))
+        translated_content = translate_text(content, [lang.strip() for lang in TARGET_LANGS.split(",")])
         
         for lang_code, translation in translated_content.items():
 
