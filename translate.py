@@ -190,7 +190,7 @@ def translate_text(text, langs: list[str]):
 
         service = SERVICES[AI_SERVICE]
         if service:
-            language_code = TARGET_LANG_CODES[language_index]
+            language_code = TARGET_LANG_CODES.split(",")[language_index]
             translations[language_code] = service(system_prompt, user_prompt)
             language_index += 1
         else:
