@@ -188,7 +188,7 @@ def translate_text(text, langs: list[str]):
         system_prompt = SYSTEM_PROMPT.replace('{TARGET_LANG}', target_language)
         user_prompt = USER_PROMPT.replace('{TARGET_LANG}', target_language).replace('{text}', text)
 
-        service = SERVICES[target_language]
+        service = SERVICES[AI_SERVICE]
         if service:
             language_code = TARGET_LANG_CODES[language_index]
             translations[language_code] = service(system_prompt, user_prompt)
