@@ -222,7 +222,7 @@ def main():
 
         translated_content = translate_text(content, TARGET_LANGS.split(","))
         
-        for lang_code, translation in translated_content:
+        for lang_code, translation in translated_content.items():
 
             # Reconstruct if it's markdown with YAML front matter
             translated_file_text = (
